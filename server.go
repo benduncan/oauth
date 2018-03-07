@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -67,6 +68,9 @@ func (s *OAuthBearerServer) UserCredentials(ctx *gin.Context) {
 	username := ctx.PostForm("username")
 	password := ctx.PostForm("password")
 	scope := ctx.PostForm("scope")
+
+	fmt.Println("UserCredentials => ", grantType, username, password, scope)
+
 	if username == "" || password == "" {
 		// get username and password from basic authorization header
 		var err error
@@ -80,6 +84,14 @@ func (s *OAuthBearerServer) UserCredentials(ctx *gin.Context) {
 	refreshToken := ctx.PostForm("refresh_token")
 	code, resp := s.generateTokenResponse(grantType, username, password, refreshToken, scope, "", "", ctx.Request)
 	ctx.JSON(code, resp)
+}
+
+// GenerateCredentials grant type programatically
+func (s *OAuthBearerServer) GenerateCredentials(grantType, username, password, scope string) (status int, resp Any) {
+
+	code, resp := s.generateTokenResponse(grantType, username, password, "", scope, "", "", nil)
+	return code, resp
+
 }
 
 // ClientCredentials manages client credentials grant type requests
