@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -147,7 +147,7 @@ func (s *OAuthBearerServer) generateTokenResponse(grantType, credential, secret,
 			token, refresh, err := s.generateTokens(credential, "U", scope)
 			if err == nil {
 				// Store token id
-				err = s.verifier.StoreTokenId(credential, token.Id, refresh.RefreshTokenId, token.TokenType)
+				err = s.verifier.StoreTokenId(credential, token.Id, refresh.TokenId, token.TokenType)
 				if err != nil {
 					return http.StatusInternalServerError, "Storing Token Id failed"
 				}
@@ -170,12 +170,14 @@ func (s *OAuthBearerServer) generateTokenResponse(grantType, credential, secret,
 		if err == nil {
 			token, refresh, err := s.generateTokens(credential, "C", scope)
 			if err == nil {
+				resp, err := s.cryptTokens(token, refresh)
+
 				// Store token id
-				err = s.verifier.StoreTokenId(credential, token.Id, refresh.RefreshTokenId, token.TokenType)
-				if err != nil {
+				err2 := s.verifier.StoreTokenId(credential, token.Id, resp.RefreshToken, token.TokenType)
+				if err2 != nil {
 					return http.StatusInternalServerError, "Storing Token Id failed"
 				}
-				resp, err := s.cryptTokens(token, refresh)
+
 				if err == nil {
 					return http.StatusOK, resp
 				} else {
@@ -195,7 +197,7 @@ func (s *OAuthBearerServer) generateTokenResponse(grantType, credential, secret,
 				token, refresh, err := s.generateTokens(user, "A", scope)
 				if err == nil {
 					// Store token id
-					err = s.verifier.StoreTokenId(user, token.Id, refresh.RefreshTokenId, token.TokenType)
+					err = s.verifier.StoreTokenId(user, token.Id, refresh.TokenId, token.TokenType)
 					if err != nil {
 						return http.StatusInternalServerError, "Storing Token Id failed"
 					}
@@ -220,17 +222,20 @@ func (s *OAuthBearerServer) generateTokenResponse(grantType, credential, secret,
 		// refresh token
 		refresh, err := s.provider.DecryptRefreshTokens(refreshToken)
 		if err == nil {
-			err = s.verifier.ValidateTokenId(refresh.Credential, refresh.TokenId, refresh.RefreshTokenId, refresh.TokenType)
+			err = s.verifier.ValidateTokenId(refresh.Credential, refreshToken, refresh.RefreshTokenId, refresh.TokenType)
 			if err == nil {
 				// generate new token
 				token, refresh, err := s.generateTokens(refresh.Credential, refresh.TokenType, refresh.Scope)
 				if err == nil {
+
+					resp, err := s.cryptTokens(token, refresh)
+
 					// Store token id
-					err = s.verifier.StoreTokenId(refresh.Credential, token.Id, refresh.RefreshTokenId, token.TokenType)
-					if err != nil {
+					err2 := s.verifier.StoreTokenId(refresh.Credential, token.Id, resp.RefreshToken, token.TokenType)
+					if err2 != nil {
 						return http.StatusInternalServerError, "Storing Token Id failed"
 					}
-					resp, err := s.cryptTokens(token, refresh)
+
 					if err == nil {
 						return http.StatusOK, resp
 					} else {
