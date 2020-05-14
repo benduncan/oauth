@@ -1,9 +1,9 @@
 package main
 
 import (
+	cors "github.com/benduncan/cors"
+	"github.com/benduncan/oauth"
 	"github.com/gin-gonic/gin"
-	"github.com/maxzerbini/oauth"
-	cors "gopkg.in/gin-contrib/cors.v1"
 )
 
 /*
